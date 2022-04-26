@@ -46,7 +46,7 @@ lazy val common = (crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pur
   .settings(
     libraryDependencies ++=
       Seq(XLib.cats.value, XLib.catsEffect.value, XLib.pprint.value, XLib.scribe.value, XLib.munit.value, XLib.munitCats.value),
-    libraryDependencies ++= Seq("com.odenzo" %%% "http4s-dom-xml" % "0.0.1", "org.scala-lang.modules" %%% "scala-xml" % "2.1.0")
+    libraryDependencies ++= Seq("com.odenzo" %%% "http4s-dom-xml" % "0.0.2", "org.scala-lang.modules" %%% "scala-xml" % "2.1.0")
   )
   .jvmSettings(libraryDependencies ++= Seq())
   .jsSettings()
@@ -60,7 +60,7 @@ lazy val httpclient = (crossProject(JSPlatform, JVMPlatform).crossType(CrossType
   .jsSettings(libraryDependencies ++= Seq("org.http4s" %%% "http4s-dom" % V.http4s))
   .jvmSettings(libraryDependencies ++= Seq("org.http4s" %% "http4s-ember-client" % V.http4s))
 
-lazy val frontend = (crossProject(JSPlatform).crossType(CrossType.Pure) in (file("app/frontend")))
+lazy val frontend = (crossProject(JSPlatform).crossType(CrossType.Pure) in file("app/frontend"))
   .dependsOn(common % "compile->compile;test->test", httpclient)
   .jsSettings(
     name                            := "frontend",

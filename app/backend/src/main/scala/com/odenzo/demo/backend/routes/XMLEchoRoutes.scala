@@ -23,7 +23,7 @@ object XMLEchoRoutes extends RouteUtils:
     case rq @ POST -> Root / "echo" =>
       for {
         xml  <- rq.as[Elem]
-        reply = <YouSentMe>xml</YouSentMe>
+        reply = <YouSentMe></YouSentMe>.copy(child = xml)
         rs   <- Ok(reply)
       } yield rs
 
