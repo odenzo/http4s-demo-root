@@ -24,10 +24,8 @@ trait RouteUtils:
 
   val unknownMimeType = "application/octet-stream"
 
-//  def formatResponse[T: Encoder, O](rq: Request[IO])(data: T, fn: Option[T => O] = None) = checkResponseFormat(rq) match {
-//    case JsonFormat => Ok(data.asJson)
-//    case HTMLFormat => fn.fold(data, fn(data)data.map(_.asJson.spaces4SortKeys).flatMap(Ok(_))
-//  }
+  object ResourceUrlQueryParamMatcher extends QueryParamDecoderMatcher[String]("location")
+
   def getHeaderAsString(headers: Headers, headerName: String): IO[String] = IO
     .fromOption(headers.get(CIString(headerName)).map(_.head.value))(Throwable(s"Required HTTP Header $headerName not found"))
 

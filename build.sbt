@@ -3,21 +3,19 @@ import sbt._
 import MyCompileOptions.optV3
 import sbt.Keys.libraryDependencies
 
-import scala.Seq
 ThisBuild / resolvers += Resolver.mavenLocal
 ThisBuild / publishMavenStyle   := true
 ThisBuild / bspEnabled          := false
 scalaJSUseMainModuleInitializer := true
+//Test / scalaJSUseMainModuleInitializer
 
 ThisBuild / scalaJSLinkerConfig ~= {
-  _.withModuleKind(ModuleKind.ESModule)
+  _.withModuleKind(ModuleKind.CommonJSModule)
 }
 
-val javart                      = "1.11"
-lazy val supportedScalaVersions = List("3.1.1")
+val javart = "1.11"
 ThisBuild / scalaVersion  := "3.1.1"
 inThisBuild {
-
   organization                := "com.odenzo"
   reStart / mainClass         := Some("com.odenzo.webapp.be.BEMain")
   reStart / javaOptions += "-Xmx2g"
@@ -40,13 +38,20 @@ val jsPath = "apps/backend/src/main/resources"
 lazy val root = project
   .in(file("."))
   .aggregate(common.jvm, common.js, frontend.js, backend, httpclient.jvm, httpclient.js)
-  .settings(name := "http4s-demo-root", crossScalaVersions := supportedScalaVersions, doc / aggregate := false)
+  .settings(name := "http4s-demo-root", doc / aggregate := false, publish / skip := true)
 
 lazy val common = (crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure) in file("modules/common"))
   .settings(
-    libraryDependencies ++=
-      Seq(XLib.cats.value, XLib.catsEffect.value, XLib.pprint.value, XLib.scribe.value, XLib.munit.value, XLib.munitCats.value),
-    libraryDependencies ++= Seq("com.odenzo" %%% "http4s-dom-xml" % "0.0.2", "org.scala-lang.modules" %%% "scala-xml" % "2.1.0")
+    libraryDependencies ++= Seq(
+      "org.typelevel"          %%% "cats-core"           % V.cats,
+      "org.typelevel"          %%% "cats-effect"         % V.catsEffect,
+      "com.outr"               %%% "scribe"              % V.scribe,
+      "com.lihaoyi"            %%% "pprint"              % V.pprint,
+      "com.odenzo"             %%% "http4s-dom-xml"      % "0.0.2",
+      "org.scala-lang.modules" %%% "scala-xml"           % V.scalaXML,
+      "org.http4s"             %%% "http4s-circe"        % V.http4s,
+      "org.typelevel"          %%% "munit-cats-effect-3" % V.munitCats % Test
+    )
   )
   .jvmSettings(libraryDependencies ++= Seq())
   .jsSettings()
@@ -66,21 +71,23 @@ lazy val frontend = (crossProject(JSPlatform).crossType(CrossType.Pure) in file(
     name                            := "frontend",
     mainClass                       := Some("com.odenzo.investing.fe.LaminarMainIO"),
     scalaJSUseMainModuleInitializer := true,
-    libraryDependencies ++= Seq(XLib.http4sDomClient.value),
-    libraryDependencies ++= Seq(JSLibs.laminar.value, JSLibs.laminarExtCore.value)
+    libraryDependencies ++= Seq("org.http4s" %%% "http4s-dom" % V.http4s, "com.raquo" %%% "laminar" % V.laminar)
   )
 
 lazy val backend = project
   .in(file("app/backend"))
   .dependsOn(common.jvm % "compile->compile;test->test", httpclient.jvm % "compile->compile;test->test")
-  .settings(libraryDependencies ++= Libs.testing ++ Libs.scribeSLF4J ++ Libs.http4s)
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.http4s"    %% "http4s-dsl"          % V.http4s,
+      "org.http4s"    %% "http4s-ember-server" % V.http4s,
+      "org.http4s"    %% "http4s-ember-client" % V.http4s, // Was going to spawn a program to use httpclient in jvm, not done yet
+      "co.fs2"        %% "fs2-io"              % V.fs2,
+      "ch.qos.logback" % "logback-classic"     % V.logback
+    )
+  )
   .settings(Compile / resourceDirectories ++= Seq(baseDirectory.value / "web"))
 
-// This will recompile everything (changed) and the link the Javascript into Backend resources directory
-// Not sure under which circumatances we need to move to backend/target or actually repack the JAR
-// Have to read how revolver actually works.
-// Odd, that given this seems a great/standard use-case it isn't well documented
-// how to set this up with quick dev cycle, then a nice production version
 lazy val feRun = taskKey[Unit]("Copy JS to Resources and Run WebApp")
 feRun := {
   (Compile / compile).value
@@ -90,6 +97,9 @@ feRun := {
   val finalDest: File = (backend / Compile / resourceDirectory).value / "web" / "js"
   IO.copyFile(js, finalDest / "main.js")
   IO.copyFile(jsmap, finalDest / "main.js.map")
+  // the reStart on rerun will move from src resources to actual app
+  // Must be something that runs the backend from "pre-jarred' directory for even quick turn-around
+  // and that will automatically move the recompiled JS in as necessary (even on a per module bases?)
 
 }
 

@@ -14,7 +14,6 @@ import org.http4s.headers.`Content-Type`
 object XMLEchoRoutes extends RouteUtils:
 
   import org.http4s.EntityEncoder.*
-  import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
   import cats.effect.Ref.*
   import cats.effect.unsafe.implicits.global
   import scala.xml.*

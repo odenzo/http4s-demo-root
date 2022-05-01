@@ -1,7 +1,19 @@
 package com.odenzo.base
 
 import scribe.filter.*
-import scribe.format.{Formatter, FormatterInterpolator, fileName, levelColoredPaddedRight, line, messages, newLine, time}
+import scribe.format.{
+  Formatter,
+  FormatterInterpolator,
+  fileName,
+  levelColoredPaddedRight,
+  line,
+  messages,
+  newLine,
+  threadName,
+  threadNameAbbreviated,
+  time,
+  timeStamp
+}
 import scribe.{Level, Logger, Priority, format}
 
 /** Scribe has run-time configuration. This is designed to control when developing the codec library and also when using. This is my
@@ -36,7 +48,8 @@ object ScribeLoggingConfig extends Logger:
     scribe.Logger.root.withModifier(ScribeLoggingConfig.excludePackageSelction(packages, l, pri)).replace()
 
   def init(l: Level): Logger =
-    val myFormatter: Formatter = formatter"$time $levelColoredPaddedRight [$fileName:$line] - ${format.white(messages)}$newLine"
+    val myFormatter: Formatter =
+      formatter"$timeStamp $levelColoredPaddedRight [$fileName:$line] $threadName --> $newLine:: ${format.white(messages)}$newLine"
     Logger.root.clearHandlers().withHandler(formatter = myFormatter).clearModifiers().withMinimumLevel(l).replace()
 
   def mutePackage(p: String, l: Level = Level.Warn): Unit =

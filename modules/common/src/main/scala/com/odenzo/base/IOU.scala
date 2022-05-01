@@ -22,7 +22,7 @@ trait IOU:
   def fromFuture[A](fn: => Future[A]): IO[A] =
     IO.fromFuture(IO(fn))
 
-  /** Ensures list has exactly one element or raisesError */
+  /** Ensures list has exactly one element or raisesError, Scala 3 or IJ result inference buggered? */
   def exactlyOne[A](msg: String)(l: List[A]): IO[A] =
     val err = new IllegalStateException(s"Requires List Size 1 but  ${l.length}: $msg")
     if l.length > 1 then IO.raiseError[A](err)

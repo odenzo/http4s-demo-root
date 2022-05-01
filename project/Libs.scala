@@ -61,35 +61,12 @@ object Libs {
   // This IS NOW supposed to work with ScalaJS
   val scalaXML = Seq("org.scala-lang.modules" %% "scala-xml" % V.scalaXML)
 
-  val tapir = Seq(
-    "com.softwaremill.sttp.tapir" %% "tapir-core"          % V.tapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-json-circe"    % V.tapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-openapi-circe" % V.tapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs"  % V.tapir,
-    "com.softwaremill.sttp.tapir" %% "tapir-http4s-server" % V.tapir
-  )
-
   val sttpClient = Seq("com.softwaremill.sttp.client3" %% "core" % V.sttpClient, "com.softwaremill.sttp.client3" %% "circe" % V.sttpClient)
 
   val scribe      = Seq("com.outr" %% "scribe" % V.scribe)
   val scribeSLF4J = Seq("com.outr" %% "scribe-slf4j" % V.scribe)
   val scribeCats  = Seq("com.outr" %% "scribe-cats" % V.scribeCats)
   val logback     = Seq("ch.qos.logback" % "logback-classic" % V.logback)
-
-  val circe = Seq(
-    "io.circe" %% "circe-core"    % V.circe,
-    "io.circe" %% "circe-generic" % V.circe,
-    "io.circe" %% "circe-extras"  % V.circe,
-    "io.circe" %% "circe-jawn"    % V.circe,
-    "io.circe" %% "circe-numbers" % V.circe,
-    "io.circe" %% "circe-parser"  % V.circe,
-    "io.circe" %% "circe-pointer" % V.circe
-    //  "io.circe" %% "circe-generic-extras" % circeGenericExtrasVersion,
-    // "io.circe" %% "circe-optics" % circeOpticsVersion
-    // "io.circe" %% "circe-literal" % circeVersion
-    // "io.circe" %% "circe-scodec" % circeVersion,
-    // "io.circe" %% "circe-fs2" % circeVersion
-  )
 
   /** HTTP4S some parts are backend only */
   val http4s = Seq(
@@ -102,25 +79,6 @@ object Libs {
     // "org.http4s" %% "http4s-scalatags" % http4sVersion,
     // "org.http4s" %% "http4s-jdk-http-client" % "0.3.5"
   )
-  //
-  val doobie = Seq(
-    // Start with this one     (skunk?)
-    "org.tpolecat" %% "doobie-core"     % V.doobie,
-    "org.tpolecat" %% "doobie-hikari"   % V.doobie,
-    "org.tpolecat" %% "doobie-postgres" % V.doobie,
-    // "org.tpolecat" %% "doobie-quill"     % Version.doobie, // https://github.com/polyvariant/doobie-quill
-    // "org.tpolecat" %% "doobie-scalatest" % V.doobie % "test"
-    "org.tpolecat" %% "doobie-munit"    % V.doobie % Test
-  )
-
-  val weaverTest = Seq("com.disneystreaming" %% "weaver-cats" % V.weaverTest % Test)
-
-  //  Seq(
-  //    "com.tersesystems.blindsight"  %% "blindsight-logstash"  % blindSightLogV,
-  //    "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.12.1"
-  //  )
-
-  val all: Seq[ModuleID] = cats ++ fs2 ++ monocle ++ standard ++ scribe ++ circe ++ http4s ++ scribeCats ++ scribeSLF4J
 
 }
 
@@ -163,12 +121,11 @@ object XLib {
 //
 //  // lazy val http4sClient = Def.setting("org.http4s" %%% "http4s-blaze-client" % V.http4s) .. Bi ScalaJS
 
-  lazy val http4sDsl       = Def.setting("org.http4s" %%% "http4s-dsl" % V.http4s)
-  lazy val http4sClient    = Def.setting("org.http4s" %%% "http4s-client" % V.http4s)
-  lazy val http4sServer    = Def.setting("org.http4s" %%% "http4s-core" % V.http4s)
-  lazy val http4sCirce     = Def.setting("org.http4s" %%% "http4s-circe" % V.http4s)
-  lazy val http4sXml       = Def.setting("org.http4s" %%% "http4s-scala-xml" % V.http4s)
-  lazy val http4sDomClient = Def.setting("org.http4s" %%% "http4s-dom" % V.http4s)
+  lazy val http4sDsl    = Def.setting("org.http4s" %%% "http4s-dsl" % V.http4s)
+  lazy val http4sClient = Def.setting("org.http4s" %%% "http4s-client" % V.http4s)
+  lazy val http4sServer = Def.setting("org.http4s" %%% "http4s-core" % V.http4s)
+  lazy val http4sCirce  = Def.setting("org.http4s" %%% "http4s-circe" % V.http4s)
+  lazy val http4sXml    = Def.setting("org.http4s" %%% "http4s-scala-xml" % V.http4s)
 
   // lazy val http4s = Def.setting(Seq("org.http4s" %%% "http4s-dom" % V.http4s, "org.http4s" %%% "http4s-circe" % V.http4s))
 

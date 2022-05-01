@@ -7,7 +7,7 @@ class SecretTest extends munit.CatsEffectSuite:
     assert(true)
   }
   test("io") {
-
+    println("Test is Running")
     IO.delay {
       assertEquals(23, 23)
     }

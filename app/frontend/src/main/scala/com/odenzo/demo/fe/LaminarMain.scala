@@ -9,7 +9,7 @@ import cats.effect.kernel.Outcome
 import cats.effect.unsafe.IORuntime
 import cats.effect.unsafe.implicits.*
 import com.odenzo.demo.fe.LaminarMain.lastResult
-import com.odenzo.demo.httpclient.WebServices
+import com.odenzo.demo.httpclient.{APIBridge, XmlUtils}
 import com.odenzo.demo.httpclient.XmlUtils.given
 import com.raquo.laminar.api.L.{*, given}
 import org.http4s.client.Client as HTTPClient
@@ -17,12 +17,13 @@ import org.scalajs.dom
 import org.scalajs.dom.*
 import scribe.Level
 import scribe.*
+
 object LaminarMain {
 
   val sampleXml = "<ThisIsMyMessageToYou>Hello!</ThisIsMyMessageToYou>"
 
   /** OUr API just need an implicit client, you can make with middleware etc attached */
-  val webBridge = new WebServices(com.odenzo.demo.httpclient.ClientFactory.asClient)
+  val webBridge = new APIBridge(com.odenzo.demo.httpclient.ClientFactory.asClient)
 
   val lastResult: Var[ByteString]   = Var[String]("")
   val textXMLInput: Var[ByteString] = Var[String](sampleXml)
@@ -35,9 +36,9 @@ object LaminarMain {
     scribe.info(desc)
 
     val action = op match {
-      case "SayHi"    => webBridge.sayHi.map(t => lastResult.set(desc + t))
-      case "SayHiXml" => webBridge.sayHiXml.map(el => lastResult.set(desc + el.show))
-      case "XmlText"  => webBridge.echoXmlText(textXMLInput.now()).map(el => lastResult.set(desc + el.show))
+      case "SayHi"    => webBridge.sayHello.map(t => lastResult.set(desc + t))
+      case "SayHiXml" => webBridge.sayHelloWithXml.map(el => lastResult.set(desc + el.show))
+      case "XmlText"  => webBridge.echoAsXml(textXMLInput.now()).map(el => lastResult.set(desc + el.show))
       case "XmlElem"  =>
         // This is the "tricky" one, since it goes past using Encoders/Decoders as we are passing an Elem.
         // To get to a scala-xml Elem we can't use scala-xml parser. We can use the DOM Parser to get to an scalajs.dom.Element
@@ -46,7 +47,7 @@ object LaminarMain {
         // But, in ScalaJS only you can access the underlying DOM Parser -> scalajs DOM -> scalaxml DOM
         // It may throw exception so we wrap it all in IO
         IO(com.odenzo.xxml.XXMLParser.parse(textXMLInput.now()))
-          .flatMap(elem => webBridge.echoXml(elem))
+          .flatMap(elem => webBridge.postXmlAndEcho(elem))
           .map(el => lastResult.set(desc + el.show))
       case other      => IO.delay(lastResult.set(s"The Command [$other] was not configured."))
     }
