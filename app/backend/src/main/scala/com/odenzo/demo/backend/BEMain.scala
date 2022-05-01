@@ -24,15 +24,6 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
-/** The main purpose of this web server is *just* to serve our front-end client.
-  *   - For e-trade it will start its on oauth callback server.
-  *   - For FlexQuery we need no login or server (front-end or back-end could do)
-  *   - For IBKR TWS we need TWS ow TWS Gateway manual login and use Java so back-end only
-  *   - For IBKR Portal we connect directly to IB Gateway 10.x
-  *
-  * E-Trade is kind of the pain in the ass since we need to keep the login around alot, but don't want to start it unless needed. Even
-  * stuffed into middleware means we need to client around.
-  */
 object BEMain extends IOApp {
 
   val builder: EmberClientBuilder[IO]      = EmberClientBuilder.default[IO]
@@ -60,7 +51,7 @@ object BEMain extends IOApp {
     val rqrsLogs   = Logger.httpRoutes[IO](true, true, logAction = Some(httpLog(_: String)))
     /* This is aliases somewhere, HTTPApp I think */
     val apiService =
-      Router("/" -> StaticAssets.routes, "/xml" -> rqrsLogs(XMLEchoRoutes.routes), "/tests" -> XMLTestRoutes.routes).orNotFound
+      Router("/" -> StaticAssets.routes, "/xml" -> rqrsLogs(XMLEchoRoutes.routes), "/tests" -> rqrsLogs(XMLTestRoutes.routes)).orNotFound
 
     val appLogs: HttpApp[IO] => HttpApp[IO] = Logger.httpApp[IO](true, true, logAction = Some(httpLog(_: String)))
 
@@ -69,7 +60,7 @@ object BEMain extends IOApp {
       .withHost(ipv4"127.0.0.1") // Local access only
       .withPort(port"9999")
       .withoutTLS
-      .withHttpApp(appLogs(apiService))
+      .withHttpApp(apiService)
       .build
       .use { _ =>
         scribe.info("USING THE WEBSERVER NOW")

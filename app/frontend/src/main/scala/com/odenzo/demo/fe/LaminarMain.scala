@@ -18,17 +18,33 @@ import org.scalajs.dom.*
 import scribe.Level
 import scribe.*
 
+import scala.xml.Elem
+// import com.odenzo.demo.httpclient.XmlUtils.given // Always gets erased in IJ
+import com.odenzo.demo.httpclient.XmlUtils.given
 object LaminarMain {
 
   val sampleXml = "<ThisIsMyMessageToYou>Hello!</ThisIsMyMessageToYou>"
 
   /** OUr API just need an implicit client, you can make with middleware etc attached */
-  val webBridge = new APIBridge(com.odenzo.demo.httpclient.ClientFactory.asClient)
+  val browserWebClient = com.odenzo.demo.httpclient.ClientFactory.asClient
+  val webBridge        = new APIBridge(browserWebClient)
+  val testRunner       = new TestRunner(testCB, "Browser", browserWebClient)
 
   val lastResult: Var[ByteString]   = Var[String]("")
   val textXMLInput: Var[ByteString] = Var[String](sampleXml)
 
   val actionHandler: Observer[ByteString] = Observer(cmdHandler)
+
+  val testResults: Var[List[TestResult]] = Var[List[TestResult]](List.empty)
+
+  // Try the Laminar smart update slicing thing.
+  val testObserver: Signal[List[ReactiveHtml]] = testResults.toObservable.map { listOfRes =>
+    listOfRes.map(res => p(s"Result: ${pprint(res)}"))
+  }
+
+  def testCB(res: TestResult): IO[Unit] = {
+    testResults.update(_.prepended(res))
+  }
 
   /** Normally op is an enum.... */
   def cmdHandler(op: String): Unit = {
@@ -47,9 +63,12 @@ object LaminarMain {
         // But, in ScalaJS only you can access the underlying DOM Parser -> scalajs DOM -> scalaxml DOM
         // It may throw exception so we wrap it all in IO
         IO(com.odenzo.xxml.XXMLParser.parse(textXMLInput.now()))
-          .flatMap(elem => webBridge.postXmlAndEcho(elem))
-          .map(el => lastResult.set(desc + el.show))
-      case other      => IO.delay(lastResult.set(s"The Command [$other] was not configured."))
+          .flatMap(webBridge.postXmlAndEcho)
+          .map { (el: xml.Elem) => lastResult.set(desc + el.show) }
+
+      case "ValidTests" =>
+
+      case other => IO.delay(lastResult.set(s"The Command [$other] was not configured."))
     }
     action.unsafeRunAsyncOutcome {
       case Outcome.Succeeded(fa) => ()
@@ -77,11 +96,17 @@ object LaminarMain {
         p(
           button("Submit As Text", onClick.mapTo("XmlText") --> actionHandler),
           button("Submit As XML", onClick.mapTo("XmlElem") --> actionHandler)
-        )
+        ),
+        p("Both submit as application/xml, but submitting as XML will parse to XML on client then serialize to text via EntityEncoder")
       ),
       hr(),
-      div(p("Last Text Result:"), p(child <-- lastResult.toObservable.map(t => p(t))))
+      div(p("Last Text Result:"), pre(child <-- lastResult.toObservable.map(t => p(t)))),
+      hr(),
+      h3("Run Test Suite"),
+      button("Run Valid Tests", onClick.mapTo("ValidTests") --> actionHandler),
+      div(children <-- testObserver)
     )
+
     scribe.info("Existing Main RUN.. back to browser even loop that ...")
     renderOnDomContentLoaded(elem, content)
 

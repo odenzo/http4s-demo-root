@@ -18,11 +18,14 @@ object XMLEchoRoutes extends RouteUtils:
   import cats.effect.unsafe.implicits.global
   import scala.xml.*
   import org.http4s.scalaxml._
+  val xmlContent             = `Content-Type`(MediaType.application.xml)
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case rq @ POST -> Root / "echo" =>
       for {
         xml  <- rq.as[Elem]
-        reply = <YouSentMe></YouSentMe>.copy(child = xml)
+        ct    = rq.contentType.toString
+        info  = <contenttype>{ct}</contenttype>
+        reply = <YouSentMe></YouSentMe>.copy(child = Seq(info, xml))
         rs   <- Ok(reply)
       } yield rs
 

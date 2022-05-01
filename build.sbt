@@ -10,7 +10,7 @@ scalaJSUseMainModuleInitializer := true
 //Test / scalaJSUseMainModuleInitializer
 
 ThisBuild / scalaJSLinkerConfig ~= {
-  _.withModuleKind(ModuleKind.CommonJSModule)
+  _.withModuleKind(ModuleKind.ESModule)
 }
 
 val javart = "1.11"

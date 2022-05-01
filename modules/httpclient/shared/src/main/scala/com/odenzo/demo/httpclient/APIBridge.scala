@@ -40,14 +40,16 @@ class APIBridge(client: Client[IO]) {
   /** This needs an EntityEncoder for Elem this the imports of xxml._, on JVM now it aliases to http4s original ones, and on ScalaJS uses
     * new implicit ones.
     */
-  def postXmlAndEcho(xml: Elem): IO[Elem] = Request[IO](POST, baseUri / "xml" / "echo")
+  def postXmlAndEchoRq(xml: Elem): Request[IO] = Request[IO](POST, baseUri / "xml" / "echo")
     .putHeaders(acceptJsonXmlHeader)
     .withEntity(xml)
-    .as[Elem]
+
+  val postXmlAndEcho: Elem => IO[Elem] = (postXmlAndEchoRq _) andThen client.expect[Elem]
 
   def sayHello: IO[String] = Request[IO](GET, baseUri / "xml" / "ping").as[String]
 
-  def sayHelloWithXml: IO[Elem] = Request[IO](GET, baseUri / "xml" / "xmlPing").putHeaders(acceptJsonXmlHeader).as[Elem]
+  def sayHelloWithXmlRq: Request[IO] = Request[IO](GET, baseUri / "xml" / "xmlPing").putHeaders(acceptJsonXmlHeader)
+  def sayHelloWithXml: IO[Elem]      = client.expect[Elem](sayHelloWithXmlRq)
 
   def getValidTests: IO[List[String]] =
     import io.circe.Decoder.*
