@@ -34,5 +34,5 @@ browser. The app only connects to 127.0.0.1 and the WebServer only serves on 127
 It uses scribe for logging on backend and front-end, see the Javascript logs in your browser.
 
 
-
+NOTE: This is really only designed to be run from an IDE, or at least not with TestData jar'ed up.
 

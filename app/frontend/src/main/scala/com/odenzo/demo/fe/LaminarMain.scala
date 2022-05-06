@@ -9,9 +9,10 @@ import cats.effect.kernel.Outcome
 import cats.effect.unsafe.IORuntime
 import cats.effect.unsafe.implicits.*
 import com.odenzo.demo.fe.LaminarMain.lastResult
-import com.odenzo.demo.httpclient.{APIBridge, XmlUtils}
+import com.odenzo.demo.httpclient.{APIBridge, TestResult, XmlUtils}
 import com.odenzo.demo.httpclient.XmlUtils.given
 import com.raquo.laminar.api.L.{*, given}
+import com.raquo.laminar.nodes.ReactiveHtmlElement
 import org.http4s.client.Client as HTTPClient
 import org.scalajs.dom
 import org.scalajs.dom.*
@@ -21,6 +22,7 @@ import scribe.*
 import scala.xml.Elem
 // import com.odenzo.demo.httpclient.XmlUtils.given // Always gets erased in IJ
 import com.odenzo.demo.httpclient.XmlUtils.given
+import com.odenzo.demo.httpclient.TestRunner
 object LaminarMain {
 
   val sampleXml = "<ThisIsMyMessageToYou>Hello!</ThisIsMyMessageToYou>"
@@ -38,13 +40,17 @@ object LaminarMain {
   val testResults: Var[List[TestResult]] = Var[List[TestResult]](List.empty)
 
   // Try the Laminar smart update slicing thing.
-  val testObserver: Signal[List[ReactiveHtml]] = testResults.toObservable.map { listOfRes =>
+  val testObserver: Signal[List[ReactiveHtmlElement[HTMLElement]]] = testResults.toObservable.map { listOfRes =>
     listOfRes.map(res => p(s"Result: ${pprint(res)}"))
   }
 
+  /** Individual Test Finished */
   def testCB(res: TestResult): IO[Unit] = {
-    testResults.update(_.prepended(res))
+    testResults.update(_.prepended(res)).pure
   }
+
+  /** ALl the tests are completed */
+  def allTestsDoneCB(res: Either[Throwable, Boolean]) = IO.unit
 
   /** Normally op is an enum.... */
   def cmdHandler(op: String): Unit = {
@@ -66,7 +72,9 @@ object LaminarMain {
           .flatMap(webBridge.postXmlAndEcho)
           .map { (el: xml.Elem) => lastResult.set(desc + el.show) }
 
-      case "ValidTests" =>
+      // Crude display of just checking no failures now, should diff the scala.xml.Elem produced on server side with one on produced client
+      // side
+      case "ValidTests" => testRunner.run(allTestsDoneCB)
 
       case other => IO.delay(lastResult.set(s"The Command [$other] was not configured."))
     }

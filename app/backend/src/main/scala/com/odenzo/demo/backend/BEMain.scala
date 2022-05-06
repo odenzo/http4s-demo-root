@@ -10,9 +10,11 @@ import cats.arrow.FunctionK
 import com.comcast.ip4s.*
 import com.odenzo.base.{OLogging, ScribeLoggingConfig}
 import com.odenzo.demo.backend.routes.{StaticAssets, XMLEchoRoutes, XMLTestRoutes}
+import com.odenzo.demo.backend.TestDataHandler
 import com.odenzo.demo.httpclient.TestResult
+import fs2.io.file.Path
 import org.http4s.*
-import org.http4s.client.{Client, middleware}
+import org.http4s.client.{middleware, Client}
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits.http4sKleisliResponseSyntaxOptionT
@@ -48,25 +50,36 @@ object BEMain extends IOApp {
   def server: IO[ExitCode] = {
     def httpLog(s: String): IO[Unit] = IO(scribe.info(s"JVMServer: $s"))
 
-    val rqrsLogs   = Logger.httpRoutes[IO](true, true, logAction = Some(httpLog(_: String)))
-    /* This is aliases somewhere, HTTPApp I think */
-    val apiService =
-      Router("/" -> StaticAssets.routes, "/xml" -> rqrsLogs(XMLEchoRoutes.routes), "/tests" -> rqrsLogs(XMLTestRoutes.routes)).orNotFound
+    val rqrsLogs = Logger.httpRoutes[IO](true, true, logAction = Some(httpLog(_: String)))
 
     val appLogs: HttpApp[IO] => HttpApp[IO] = Logger.httpApp[IO](true, true, logAction = Some(httpLog(_: String)))
 
-    EmberServerBuilder
-      .default[IO]
-      .withHost(ipv4"127.0.0.1") // Local access only
-      .withPort(port"9999")
-      .withoutTLS
-      .withHttpApp(apiService)
-      .build
-      .use { _ =>
-        scribe.info("USING THE WEBSERVER NOW")
-        IO(scribe.info("In IO Using WebServer")) *> IO.never
-      }
-      .as(ExitCode.Success)
+    for {
+      _               <- IO(scribe.info(s"Starting..."))
+      resourceHandler <- TestDataHandler.cwd()
+
+      // walked    <- resourceLoader.walkResourceSubPath("valid").debug(_.toString).compile.drain
+      // _          = scribe.info(s"Done Walking")
+      apiService =
+        Router(
+          "/"      -> StaticAssets.routes,
+          "/xml"   -> rqrsLogs(XMLEchoRoutes.routes),
+          "/tests" -> rqrsLogs(XMLTestRoutes(resourceHandler).routes)
+        ).orNotFound
+
+      server <- EmberServerBuilder
+                  .default[IO]
+                  .withHost(ipv4"127.0.0.1") // Local access only
+                  .withPort(port"9999")
+                  .withoutTLS
+                  .withHttpApp(apiService)
+                  .build
+                  .use { _ =>
+                    scribe.info("USING THE WEBSERVER NOW")
+                    IO(scribe.info("In IO Using WebServer")) *> IO.never
+                  }
+                  .as(ExitCode.Success)
+    } yield server
   }
 
   /** I am going to start the webserver, call this, and then manually test via browser for the frontend */

@@ -1,10 +1,14 @@
 package com.odenzo.demo.backend
 
+import cats.effect.IO
+import cats.syntax.all.*
+import fs2.io.file.Path
 import org.w3c.dom.Document
 import org.xml.sax.InputSource
 
 import java.io.{InputStream, StringReader, StringWriter}
 import java.net.URL
+import java.nio.charset.Charset
 import javax.xml.parsers.SAXParser
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
@@ -29,6 +33,7 @@ object JDKParsing {
     tf
   }
 
+  /** Want to fine tune these to match DOMParser and be compatable in x-platform scala.xml.Elem result (Same for the serializer) */
   val builderFactory: DocumentBuilderFactory = {
     val dbf: DocumentBuilderFactory = DocumentBuilderFactory.newInstance
 
@@ -43,11 +48,28 @@ object JDKParsing {
     dbf
   }
 
-  def parse(uriAsString: String): Document = {
-    println("JVM Parsing")
+  def parseFromPathDirectly(path: Path): IO[Document] = IO {
+    val uriStr = path.toNioPath.toUri.toString
+    val in     = new InputSource(uriStr)
+    println(s"JVM Parsing ${path} as URL: ")
+    in
+  } >>= parse
+
+  /** This assumes that the xmlText is correctly encoded and we convert to UTF-8 Bytes. If XML prolog has a different encoding this may fail
+    * (?)
+    */
+  def parserFromString(xmlText: String): IO[Document] = IO {
+    val db                        = builderFactory.newDocumentBuilder
+    import java.io.ByteArrayInputStream
+    val sr: StringReader          = new StringReader(xmlText)
+    val bis: ByteArrayInputStream = new ByteArrayInputStream(xmlText.getBytes(Charset.forName("UTF-8")))
+    new InputSource(sr)
+  } >>= parse
+
+  def parse(source: InputSource): IO[Document] = IO {
     val db            = builderFactory.newDocumentBuilder
-    val doc: Document = db.parse(uriAsString)
-    return doc
+    val doc: Document = db.parse(source)
+    doc
   }
 
   /** The problem with scala.xml.XML.load() is it gives us root, but throws away DOCTYPE (and XML PI) This is a pure function, returning a
@@ -58,7 +80,7 @@ object JDKParsing {
     // /doc.normalizeDocument()
 
     val transformer = serializerFactory.newTransformer();
-    transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes")
+    transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no")
     transformer.setOutputProperty(OutputKeys.STANDALONE, "yes")
 
     val writer    = new StringWriter();

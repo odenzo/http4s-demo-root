@@ -2,21 +2,25 @@ import sbt._
 
 import MyCompileOptions.optV3
 import sbt.Keys.libraryDependencies
-
+enablePlugins(JavaAppPackaging)
 ThisBuild / resolvers += Resolver.mavenLocal
 ThisBuild / publishMavenStyle   := true
 ThisBuild / bspEnabled          := false
 scalaJSUseMainModuleInitializer := true
 //Test / scalaJSUseMainModuleInitializer
-
+maintainer                      := "pania.misc@gmail.com"
+//Runtime / managedClasspath += (packageBin in previewJVM in Assets).value
 ThisBuild / scalaJSLinkerConfig ~= {
   _.withModuleKind(ModuleKind.ESModule)
 }
-
+Compile / mainClass             := Some("com.odenzo.webapp.backend.BEMain")
 val javart = "1.11"
+scalaVersion              := "3.1.1"
 ThisBuild / scalaVersion  := "3.1.1"
+organization              := "com.odenzo"
 inThisBuild {
-  organization                := "com.odenzo"
+  organization := "com.odenzo"
+
   reStart / mainClass         := Some("com.odenzo.webapp.be.BEMain")
   reStart / javaOptions += "-Xmx2g"
   reStartArgs                 := Seq("-x")
@@ -37,6 +41,7 @@ val jsPath = "apps/backend/src/main/resources"
 
 lazy val root = project
   .in(file("."))
+  .dependsOn(common.jvm, common.js, frontend.js, backend, httpclient.jvm, httpclient.js)
   .aggregate(common.jvm, common.js, frontend.js, backend, httpclient.jvm, httpclient.js)
   .settings(name := "http4s-demo-root", doc / aggregate := false, publish / skip := true)
 
@@ -77,6 +82,7 @@ lazy val frontend = (crossProject(JSPlatform).crossType(CrossType.Pure) in file(
 lazy val backend = project
   .in(file("app/backend"))
   .dependsOn(common.jvm % "compile->compile;test->test", httpclient.jvm % "compile->compile;test->test")
+  .enablePlugins(JavaAppPackaging)
   .settings(
     libraryDependencies ++= Seq(
       "org.http4s"    %% "http4s-dsl"          % V.http4s,
