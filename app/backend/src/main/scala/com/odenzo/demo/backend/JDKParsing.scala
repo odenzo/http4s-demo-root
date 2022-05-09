@@ -40,8 +40,8 @@ object JDKParsing {
     dbf.setNamespaceAware(true)
     dbf.setValidating(false)
     dbf.setCoalescing(false)
-    dbf.setExpandEntityReferences(false)
-    dbf.setIgnoringComments(false)
+    dbf.setExpandEntityReferences(true)
+    dbf.setIgnoringComments(true)
     dbf.setIgnoringElementContentWhitespace(false)
     dbf.setXIncludeAware(false)
 
@@ -80,8 +80,8 @@ object JDKParsing {
     // /doc.normalizeDocument()
 
     val transformer = serializerFactory.newTransformer();
-    transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no")
-    transformer.setOutputProperty(OutputKeys.STANDALONE, "yes")
+    transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes")
+    // transformer.setOutputProperty(OutputKeys.STANDALONE, "yes")
 
     val writer    = new StringWriter();
     transformer.transform(new DOMSource(doc), new StreamResult(writer));

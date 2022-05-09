@@ -1,0 +1,5 @@
+<!DOCTYPE doc [
+<!ELEMENT doc (#PCDATA)>
+]>
+<doc>&#163;</doc>
+<!-- Problem File Reading as String in UTF-8 -->

@@ -10,10 +10,13 @@ scalaJSUseMainModuleInitializer := true
 //Test / scalaJSUseMainModuleInitializer
 maintainer                      := "pania.misc@gmail.com"
 //Runtime / managedClasspath += (packageBin in previewJVM in Assets).value
-ThisBuild / scalaJSLinkerConfig ~= {
-  _.withModuleKind(ModuleKind.ESModule)
-}
-Compile / mainClass             := Some("com.odenzo.webapp.backend.BEMain")
+
+// ECMAScript
+//scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
+// CommonJS
+scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
+
+Compile / mainClass := Some("com.odenzo.webapp.backend.BEMain")
 val javart = "1.11"
 scalaVersion              := "3.1.1"
 ThisBuild / scalaVersion  := "3.1.1"
@@ -48,14 +51,15 @@ lazy val root = project
 lazy val common = (crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pure) in file("modules/common"))
   .settings(
     libraryDependencies ++= Seq(
-      "org.typelevel"          %%% "cats-core"           % V.cats,
-      "org.typelevel"          %%% "cats-effect"         % V.catsEffect,
-      "com.outr"               %%% "scribe"              % V.scribe,
-      "com.lihaoyi"            %%% "pprint"              % V.pprint,
-      "com.odenzo"             %%% "http4s-dom-xml"      % "0.0.2",
-      "org.scala-lang.modules" %%% "scala-xml"           % V.scalaXML,
-      "org.http4s"             %%% "http4s-circe"        % V.http4s,
-      "org.typelevel"          %%% "munit-cats-effect-3" % V.munitCats % Test
+      "org.typelevel"          %%% "cats-core"              % V.cats,
+      "org.typelevel"          %%% "cats-effect"            % V.catsEffect,
+      "com.outr"               %%% "scribe"                 % V.scribe,
+      "com.lihaoyi"            %%% "pprint"                 % V.pprint,
+      "com.odenzo"             %%% "http4s-dom-xml"         % "0.0.2",
+      "org.scala-lang.modules" %%% "scala-xml"              % V.scalaXML,
+      "org.http4s"             %%% "http4s-circe"           % V.http4s,
+      "org.typelevel"          %%% "munit-cats-effect-3"    % V.munitCats % Test,
+      "org.latestbit"          %%% "circe-tagged-adt-codec" % "0.10.1"
     )
   )
   .jvmSettings(libraryDependencies ++= Seq())
@@ -67,7 +71,15 @@ lazy val httpclient = (crossProject(JSPlatform, JVMPlatform).crossType(CrossType
     name := "httpclient",
     libraryDependencies ++= Seq("org.http4s" %%% "http4s-dsl" % V.http4s, "org.http4s" %%% "http4s-client" % V.http4s)
   )
-  .jsSettings(libraryDependencies ++= Seq("org.http4s" %%% "http4s-dom" % V.http4s))
+  .jsSettings(
+    libraryDependencies ++= Seq(
+      "org.http4s" %%% "http4s-dom"    % V.http4s,
+      "io.circe"   %%% "circe-core"    % V.circe,
+      "io.circe"   %%% "circe-generic" % V.circe,
+      "io.circe"   %%% "circe-pointer" % V.circe,
+      "io.circe"   %%% "circe-parser"  % V.circe
+    )
+  )
   .jvmSettings(libraryDependencies ++= Seq("org.http4s" %% "http4s-ember-client" % V.http4s))
 
 lazy val frontend = (crossProject(JSPlatform).crossType(CrossType.Pure) in file("app/frontend"))

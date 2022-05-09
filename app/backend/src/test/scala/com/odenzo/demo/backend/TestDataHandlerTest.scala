@@ -17,10 +17,14 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.util.Try
 import scala.xml.Elem
 
-class TestDataHandlerTest extends munit.CatsEffectSuite {
+class TestDataHandlerTest extends munit.CatsEffectSuite with XmlHarness {
 
-  def makeHandler = TestDataHandler.cwd()
-  val handler     = makeHandler.unsafeRunSync()
+  import java.nio.charset.StandardCharsets.UTF_8
+  val currDir           = Files[IO].currentWorkingDirectory.unsafeRunSync()
+  scribe.warn(s"Current WD: $currDir")
+  def makeHandler       = IO.pure(TestDataHandler.apply(currDir / "testdata"))
+  val handler           = makeHandler.unsafeRunSync()
+  given TestDataHandler = handler
 
   test("Load Relative Text") {
     for {
@@ -72,6 +76,26 @@ class TestDataHandlerTest extends munit.CatsEffectSuite {
                    .compile
                    .drain
     } yield stream
+  }
+
+  test("Valid String Loading") {
+    for {
+      stream <- listAllIn(Path("valid"))
+      res    <- stream.evalMap(loadPathAsXmlString).compile.drain
+    } yield res
+  }
+
+  test("Valid XML Parsing All") {
+    for {
+      stream <- listAllIn(Path("valid"))
+      res    <- stream
+                  .evalMap(allParsers)
+                  .map { case (outA, outB) =>
+                    Assertions.assertNoDiff(outA, outB)
+                  }
+                  .compile
+                  .drain
+    } yield res
   }
 
   test(name = "WalkBad") {

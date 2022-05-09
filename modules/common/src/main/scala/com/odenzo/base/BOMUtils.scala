@@ -6,11 +6,15 @@ import scodec.bits.*
 
 /** XML DOM Utilities including attempt at encoding sniffing. Falls back to UTF-8 */
 object BOMUtils {
+  import java.nio.charset.StandardCharsets
 
+  /** This is a little odd, because UTF-16 IS WITH A BOM and 16BE and LE charsets for without a BOM. So, if we keep BOM (e.g. peeking the
+    * byes, go UTF_16, is we consume DOM then the BE/LE
+    */
   val bomMappings = Map(
-    hex"EFBBBF"      -> Charset.forName("UTF-8"),
-    hex"FEFF"        -> Charset.forName("UTF-16BE"),
-    hex"FFFE"        -> Charset.forName("UTF-16LE"),
+    hex"EFBBBF"      -> StandardCharsets.UTF_8,
+    hex"FEFF"        -> StandardCharsets.UTF_16BE,
+    hex"FFFE"        -> StandardCharsets.UTF_16LE,
     hex"00 00 FE FF" -> Charset.forName("UTF-32BE"),
     hex"FF FE 00 00" -> Charset.forName("UTF-32LE")
   )

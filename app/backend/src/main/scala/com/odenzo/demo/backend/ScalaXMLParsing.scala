@@ -1,7 +1,15 @@
 package com.odenzo.demo.backend
 
-import java.io.StringWriter
+import cats.syntax.all.*
+import cats.effect.IO
+import fs2.io.file.Path as FPath
+import org.w3c.dom.Document
+import org.xml.sax.InputSource
+
+import java.io.{ByteArrayInputStream, FileInputStream, StringReader, StringWriter}
 import java.net.URL
+import java.nio.charset.Charset
+import java.nio.file.{Files, Paths}
 import scala.xml.dtd.DocType
 
 /** */
@@ -23,13 +31,31 @@ object ScalaXMLParsing {
     factory.newSAXParser()
   }
 
-  /** Creates a new loader and parses. This is thread safe */
-  def parse(url: URL): Elem = { customXML.load(url) }
+  def parseFromPathBinary(path: FPath): IO[Elem] = IO {
+    // val channel = Files.newByteChannel(jpath)
+    val bytesIn: Array[Byte]      = Files.readAllBytes(path.toNioPath)
+    val bis: ByteArrayInputStream = new ByteArrayInputStream(bytesIn)
+    // val fis                       = new FileInputStream(path.toNioPath.toFile)
+    val in                        = new InputSource(bis)
+    scribe.info(s"ScalaXML Parsing ${path} as URL: ")
+    in
+  } >>= parse
 
-  /** Creates a new loader and parses. This is thread safe */
-  def parse(s: String): Elem = {
-    println("JVM Parsing")
-    customXML.loadString(s)
+  def parseFromString(xmlText: String): IO[Elem] = IO {
+    val sr: StringReader          = new StringReader(xmlText)
+    val bis: ByteArrayInputStream = new ByteArrayInputStream(xmlText.getBytes(Charset.forName("UTF-8")))
+    new InputSource(sr)
+  } >>= parse
+
+  def parseFromPath(fileAbs: FPath): IO[Elem] = IO {
+    customXML.load(fileAbs.toNioPath.toUri.toURL) match {
+      case elem: scala.xml.Elem => elem
+      case other                => throw Throwable(s"Expected Parsed elem got ${other.getClass}: $other")
+    }
+  }
+
+  def parse(in: InputSource): IO[Elem] = IO {
+    customXML.load(in)
   }
 
   /** The problem with scala.xml.XML.load() is it gives us root, but throws away DOCTYPE (and XML PI) This is a pure function, returning a

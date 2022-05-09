@@ -28,6 +28,7 @@ class TestDataHandler(val baseDir: Path) {
 
   import java.net.URLClassLoader
 
+  /** Iff p not absolute resolves to configured/injected base data directory. */
   def resolved(p: Path): Path = if p.isAbsolute then p else baseDir.resolve(p)
 
   def tokenAsTextStream(location: Path): IO[fs2.Stream[IO, String]] =
@@ -54,35 +55,20 @@ class TestDataHandler(val baseDir: Path) {
   def loadTokenAsBinary(location: Path): IO[Vector[Byte]] =
     tokenAsBinaryStream(location).flatMap { (stream: fs2.Stream[IO, Byte]) => stream.compile.toVector }
 
-//  // TODO: Remove from here
-//  def pathParsedAndSerialized(url: URL): IO[String] =
-//    // Or xml.InputSource or InputStream
-//    IO.blocking(scala.xml.XML.load(url))
-//      .map(elem => ScalaXMLParsing.serialize(elem))
+  /** Gets ScalaXML to load directly from Path, no sniffing etc, and then serializes the Elem */
+  def scalaXmlParsedAndSerialized(file: Path): IO[String] =
+    // Might need to resolve this to absolute to be safe.
+    ScalaXMLParsing
+      .parseFromPath(resolved(file))
+      .map(elem => ScalaXMLParsing.serialize(elem))
 
-  /** Note this does no security checks or anything at all, just a hack for testing in browser */
-  def allFilesUnder(path: Path): IO[fs2.Stream[IO, Path]] = IO {
-    scribe.info(s"All Files Under $path (Resolved: ${resolved(path)} ")
-    // fs2.io.readClassLoaderResource()
-    fs2.io.file.Files[IO].walk(resolved(path)).filter(p => !JFiles.isDirectory(p.toNioPath))
-  }
-
-  /** So, there are really a few cases,
-    *   - all on JVM:
-    *     1. TestFile => scala.xml parsing (of text) 2. TestFile => xxml proxied parsing (of text) 3. TestFile => scala.xml loading file
-    *        directly. 4. TestFile => binary load, scala.xml parsing 5. TestFIle => scala.xml direct parsing (dupes 3?)
-    *
-    *   - On the browser
-    *     - Binary straight from file -> xml parsing
-    *     - Text assumed in standard encoding (maybe BOM checked and <?xml encoding checked)
+  /** Get all the *.xml test files recursively under the given directory path. Note: this does no security checks or anything at all, just a
+    * hack for testing in browser.
     */
-//  def parsedAndSerialized(location: Path): IO[fs2.Stream[IO, String]] =
-//    val path = resolved(location)
-//    for {
-//      xmlText <- loadTokenAsString(path) // UTF_8 ONLY NOW!
-//      xmlBin <- loadTokenAsBinary(path)
-//      sXml   <- JDKParsing.parseFromPathDirectly(path)
-//    } yield ()
+  def allFilesUnder(dir: Path): IO[fs2.Stream[IO, Path]] = IO {
+    scribe.info(s"All Files Under $dir (Resolved: ${resolved(dir)} ")
+    fs2.io.file.Files[IO].walk(resolved(dir)).filter(p => !JFiles.isDirectory(p.toNioPath)).filter(_.extName == ".xml").debug()
+  }
 
 }
 
