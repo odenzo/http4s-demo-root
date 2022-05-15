@@ -35,7 +35,8 @@ trait RequestUtils:
     QueryParamEncoder.stringQueryParamEncoder.contramap[TestXmlType](en => en.toString)
   )
 
-  object XmlTypeQueryParam extends QueryParamDecoderMatcher[TestXmlType]("xmlType")
+  object FEXmlTypeParam extends QueryParamDecoderMatcher[TestXmlType]("feXmlType")
+  object BEXmlTypeParam extends QueryParamDecoderMatcher[TestXmlType]("beXmlType")
 
   object LocalDateVar:
     def unapply(str: String): Option[LocalDate] =

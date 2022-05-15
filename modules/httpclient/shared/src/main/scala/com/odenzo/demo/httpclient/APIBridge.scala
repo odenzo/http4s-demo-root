@@ -51,7 +51,6 @@ class APIBridge(client: Client[IO]) extends RequestUtils {
   def sayHelloWithXml: IO[Elem]      = client.expect[Elem](sayHelloWithXmlRq)
 
   // === TESTING ===
-  def getValidTests: IO[List[XmlLocation]] = getTestsInDir(XmlLocation("valid"))
 
   /** This can be absolute or relative directory. */
   def getTestsInDir(dir: XmlLocation): IO[List[XmlLocation]] =
@@ -62,33 +61,44 @@ class APIBridge(client: Client[IO]) extends RequestUtils {
     given EntityDecoder[IO, List[XmlLocation]] = jsonOf[IO, List[XmlLocation]]
     for {
       _     <- IO(scribe.info(s"Getting Tests in $dir"))
-      theUri = baseUri.withPath(path"tests/list").withQueryParam("dir", dir)
+      theUri = baseUri.withPath(path"tests/list").withQueryParam("dir", dir.path)
       rq     = Request[IO](GET, theUri).putHeaders(acceptJsonXmlHeader)
       rs    <- client.expect[List[XmlLocation]](rq)
     } yield rs
 
-  def getXmlRq(location: XmlLocation, mode: TestXmlType = TestXmlType.TXT)(using qpe: QueryParamEncoder[XmlLocation]): Request[IO] =
+  def getXmlRq(location: XmlLocation, mode: TestXmlType = TestXmlType.TXT_SNIFFED)(using qpe: QueryParamEncoder[XmlLocation]): Request[IO] =
     scribe.info(s"About to Request $mode @  $location ")
 
     Request[IO](
       GET,
       (baseUri / "tests" / "xml")
         .withQueryParam("file", location)
-        .withQueryParam("xmlType", mode.toString)
+        .withQueryParam("beXmlType", mode.toString)
     )
 
   val getXml: (XmlLocation, TestXmlType) => IO[Elem] = Function.untupled((getXmlRq _).tupled andThen client.expect[Elem])
 
-  def postXmlAndCompate(file: XmlLocation, mode: TestXmlType, elem: scala.xml.Elem)(
-      using QueryParamEncoder[XmlLocation],
-      QueryParamEncoder[TestXmlType]
-  ) =
-    Request[IO](
+  /** TODO: Needs testing */
+  val getXmlAsText: (XmlLocation, TestXmlType) => IO[String] = Function.untupled((getXmlRq _).tupled andThen client.expect[String])
+
+  /** The only real Browser - BackEnd Parsing Test -- compares "somehow". */
+  def postXmlAndCompare(file: XmlLocation, feMode: TestXmlType, feXml: String, beMode: TestXmlType): IO[TestResult] =
+    import io.circe.Decoder.*
+    import com.odenzo.demo.httpclient.given
+    import org.http4s.circe.jsonDecoder
+    import org.http4s.circe.CirceEntityDecoder.circeEntityDecoder
+    import TestResult.given
+    summon[QueryParamEncoder[XmlLocation]]
+    summon[QueryParamEncoder[TestXmlType]]
+    val rq = Request[IO](
       POST,
       (baseUri / "tests" / "xml")
         .withQueryParam("file", file)
-        .withQueryParam("xmlType", mode)
-    )
+        .withQueryParam("feXmlType", feMode)
+        .withQueryParam("beXmlTYpe", beMode)
+    ).withEntity[String](feXml)
+    client.expect[TestResult](rq)
+
 }
 
 object APIBridge {

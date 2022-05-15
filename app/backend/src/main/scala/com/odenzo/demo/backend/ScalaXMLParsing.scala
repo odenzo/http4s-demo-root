@@ -42,15 +42,14 @@ object ScalaXMLParsing {
   } >>= parse
 
   def parseFromString(xmlText: String): IO[Elem] = IO {
-    val sr: StringReader          = new StringReader(xmlText)
-    val bis: ByteArrayInputStream = new ByteArrayInputStream(xmlText.getBytes(Charset.forName("UTF-8")))
-    new InputSource(sr)
-  } >>= parse
+    customXML.loadString(xmlText)
+  }
 
+  /** Directly parses from File, with ScalaXML handling all file encoding matters */
   def parseFromPath(fileAbs: FPath): IO[Elem] = IO {
     customXML.load(fileAbs.toNioPath.toUri.toURL) match {
       case elem: scala.xml.Elem => elem
-      case other                => throw Throwable(s"Expected Parsed elem got ${other.getClass}: $other")
+      // case other                => throw Throwable(s"Expected Parsed elem got ${other.getClass}: $other")
     }
   }
 

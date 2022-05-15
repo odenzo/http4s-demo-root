@@ -16,8 +16,11 @@ import scala.util.Try
 import scala.util.chaining.*
 import java.nio.file.Path as JPath
 
+import java.nio.charset.Charset as JCharset
+
 trait ResponseUtils {
   // This is empty and not sure why Scala JS is complaining.
-  val xmlContentType: `Content-Type` = `Content-Type`(MediaType.application.xml)
-
+  private val utf8                      = java.nio.charset.StandardCharsets.UTF_8
+  val xmlContentType: `Content-Type`    = xmlContentType(utf8)
+  def xmlContentType(charset: JCharset) = `Content-Type`(MediaType.application.xml, Charset(charset))
 }

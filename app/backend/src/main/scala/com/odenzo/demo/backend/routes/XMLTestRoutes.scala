@@ -10,6 +10,7 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import com.odenzo.base.OPrint.oprint
 import com.odenzo.demo.backend.{ScalaXMLParsing, TestDataHandler}
+import com.odenzo.demo.httpclient.{TestResult, TestSuccessResult, XmlLocation}
 import com.odenzo.demo.httpclient.TestXmlType.*
 import fs2.io.file
 import fs2.io.file.Path as FSPath
@@ -45,16 +46,14 @@ class XMLTestRoutes(resourceLoader: TestDataHandler) extends RouteUtils {
         res      <- Ok(locations)
       } yield res
 
-    case GET -> Root / "xml" :? PathFileQueryParam(file) :? XmlTypeQueryParam(mode)       =>
+    /** Gets an XML file and transforms (via mode) into XML Text Returned to FrontEnd in correct encoding */
+    case GET -> Root / "xml" :? PathFileQueryParam(file) :? BEXmlTypeParam(mode)                                   =>
       import org.http4s.EntityEncoder.*
       scribe.info(s"SERVER: $mode @ $file")
       mode match {
-        case TXT => resourceLoader.loadTokenAsString(file).flatMap(s => Ok(s, xmlContentType))
-
         case TXT_SNIFFED =>
-          val stream = resourceLoader.tokenAsBinaryStream(file)
-          // TODO: Finish This with sniffer and converting to stream of char of String
-          Ok(stream)
+          val txt = resourceLoader.loadContentAsTextSniffed(file) // Might need to strip off XML PI encoding, or change to UTF-8
+          txt.flatMap(t => Ok(t, xmlContentType))
 
         case SXML_TEXT => resourceLoader.scalaXmlParsedAndSerialized(file).flatMap(Ok(_, xmlContentType))
 
@@ -63,13 +62,17 @@ class XMLTestRoutes(resourceLoader: TestDataHandler) extends RouteUtils {
       }
     /** Intent is for Browser parsing of a location, then sending the serialized result back. So we ....
       */
-    case rq @ POST -> Root / "xml" :? PathFileQueryParam(file) :? XmlTypeQueryParam(mode) =>
+    case rq @ POST -> Root / "xml" :? PathFileQueryParam(file) :? FEXmlTypeParam(feMode) :? BEXmlTypeParam(beMode) =>
       import com.odenzo.xxml.{given, *}
+      import org.http4s.circe.CirceEntityEncoder.circeEntityEncoder
       for {
-        saxml      <- ScalaXMLParsing.parseFromPath(file)
-        browserXml <- rq.as[scala.xml.Elem]
-        res        <- Ok("NotCompleted")
+        browserXmlTxt <- rq.as[String]
+        browserXml    <- ScalaXMLParsing.parseFromString(browserXmlTxt)
+        saxml         <- ScalaXMLParsing.parseFromPath(file)
+        result = TestSuccessResult(XmlLocation(file.toString), feMode, true, "") // Placeholder
+        res           <- Ok(result)
       } yield res
 
   }
+
 }

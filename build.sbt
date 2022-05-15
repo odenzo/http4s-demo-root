@@ -15,6 +15,7 @@ maintainer                      := "pania.misc@gmail.com"
 //scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
 // CommonJS
 scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
+//testFrameworks += new TestFramework("munit.Framework")
 
 Compile / mainClass := Some("com.odenzo.webapp.backend.BEMain")
 val javart = "1.11"
@@ -58,7 +59,7 @@ lazy val common = (crossProject(JSPlatform, JVMPlatform).crossType(CrossType.Pur
       "com.odenzo"             %%% "http4s-dom-xml"         % "0.0.2",
       "org.scala-lang.modules" %%% "scala-xml"              % V.scalaXML,
       "org.http4s"             %%% "http4s-circe"           % V.http4s,
-      "org.typelevel"          %%% "munit-cats-effect-3"    % V.munitCats % Test,
+      "org.typelevel"          %%% "munit-cats-effect-3"    % V.munitCats % Test, // Uses munit 0.7.29 not 1.00-Mn
       "org.latestbit"          %%% "circe-tagged-adt-codec" % "0.10.1"
     )
   )
